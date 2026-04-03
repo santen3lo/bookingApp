@@ -1,19 +1,37 @@
+package domain;
+
+import Enums.BookingStatus;
+
 import java.time.Instant;
 
 public final class Booking {
 
-    private long id;
+    final long id;
     private long instrumentId;
     private Instant startAt;
     private Instant endAt;
     private BookingStatus status;
     private String ownerUsername;
-    private Instant createdAt;
+    final Instant createdAt;
+    private Instant updatedAt;
 
-    public void setUpdatedAt(Instant updatedAt) {
-        this.updatedAt = updatedAt;
+    public Booking(long id, long instrumentId, Instant startAt, Instant endAt, String ownerUsername) {
+        this.id = id;
+        this.instrumentId = instrumentId;
+        if(startAt.isAfter(Instant.now())){
+            this.startAt = startAt;
+        }
+        if(endAt.isAfter(Instant.now())){
+            this.endAt = endAt;
+        }
+        this.status = BookingStatus.ACTIVE;
+        if(!ownerUsername.isEmpty()){
+            this.ownerUsername = ownerUsername;
+        }
+        this.createdAt = Instant.now();
+
+        this.updatedAt = Instant.now();
     }
-
 
     public void setOwnerUsername(String ownerUsername) {
         if(!ownerUsername.isEmpty()){
@@ -22,9 +40,11 @@ public final class Booking {
         }else System.out.println("Имя не может быть пустым");
     }
 
-
     public void setStatus(BookingStatus status) {
         this.status = status;
+    }
+    public void setUpdatedAt(Instant updatedAt) {
+        this.updatedAt = updatedAt;
     }
 
     public void setEndAt(Instant endAt) {
@@ -51,24 +71,6 @@ public final class Booking {
     }
 
 
-    private Instant updatedAt;
-
-    public Booking(long id, long instrumentId, Instant startAt, Instant endAt, String ownerUsername) {
-        this.id = id;
-        this.instrumentId = instrumentId;
-        if(startAt.isAfter(Instant.now())){
-            this.startAt = startAt;
-        }
-        if(endAt.isAfter(Instant.now())){
-            this.endAt = endAt;
-        }
-        this.status = BookingStatus.ACTIVE;
-        if(!ownerUsername.isEmpty()){
-            this.ownerUsername = ownerUsername;
-        }
-        this.createdAt = Instant.now();
-        this.updatedAt = Instant.now();
-    }
 
     public long getId() {
         return id;

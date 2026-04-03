@@ -1,3 +1,7 @@
+package domain;
+
+import Enums.ReturnCondition;
+
 import java.time.Instant;
 
 public final class Checkout {
@@ -10,7 +14,6 @@ public final class Checkout {
         private ReturnCondition returnCondition;
         private String ownerUsername;
         private Instant createdAt;
-
 
         public void setInstrumentId(long instrumentId) {
                 if(instrumentId>0){

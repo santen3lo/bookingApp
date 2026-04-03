@@ -1,3 +1,5 @@
+package Enums;
+
 public enum InstrumentType {
     BEAKER,
     BOILING_FLASK,

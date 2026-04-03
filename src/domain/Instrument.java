@@ -1,3 +1,7 @@
+package domain;
+
+import Enums.InstrumentType;
+
 public final class Instrument {
     private long id;
     private InstrumentType type;
@@ -11,14 +15,13 @@ public final class Instrument {
     }
 
     public Instrument(long id, InstrumentType type) {
-        if (id>0) {
+        if (id > 0) {
             this.id = id;
         }
         this.type = type;
     }
 
     public long getId() {
-    if()
         return id;
     }
 
