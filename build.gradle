@@ -1,0 +1,47 @@
+plugins {
+    id 'java'
+    id 'application'
+    id 'org.openjfx.javafxplugin' version '0.1.0'
+}
+
+group = 'lab1_spring2'
+version = '1.0-SNAPSHOT'
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
+
+repositories {
+    mavenCentral()
+}
+
+javafx {
+    version = '21'
+    modules = [ 'javafx.controls', 'javafx.graphics' ]
+}
+
+application {
+    mainClass = 'ui.MainApp'
+}
+
+dependencies {
+    implementation 'org.postgresql:postgresql:42.7.3'
+}
+
+tasks.withType(JavaCompile) {
+    options.encoding = 'UTF-8'
+}
+run {
+    args = ['data/new_data.xml']
+}
+tasks.register('runMain', JavaExec) {
+    group = 'application'
+    description = 'Запуск консольного интерфейса'
+    mainClass = 'Main'
+    classpath = sourceSets.main.runtimeClasspath
+    standardInput = System.in
+    standardOutput = System.out
+    errorOutput = System.err
+}
