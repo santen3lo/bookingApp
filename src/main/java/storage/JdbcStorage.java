@@ -17,16 +17,47 @@ public final class JdbcStorage {
     private final String password;
 
     public JdbcStorage() {
+        Properties props = new Properties();
         try (InputStream in = getClass().getClassLoader().getResourceAsStream("db.properties")) {
-            if (in == null) throw new IllegalStateException("Файл db.properties не найден в src/main/resources");
-            Properties props = new Properties();
-            props.load(in);
-            this.url = props.getProperty("db.url");
-            this.user = props.getProperty("db.user");
-            this.password = props.getProperty("db.password");
+            if (in != null) {
+                props.load(in);
+            }
         } catch (Exception e) {
-            throw new RuntimeException("Ошибка загрузки конфигурации БД: " + e.getMessage(), e);
+            System.err.println("[DB] Не удалось прочитать db.properties: " + e.getMessage());
         }
+
+        // Приоритет конфигурации:
+        // 1. Системные свойства JVM (-Ddb.url=...)
+        // 2. Переменные окружения ОС (DB_URL, DB_USER, DB_PASSWORD)
+        // 3. Файл db.properties (если присутствует в classpath)
+        // 4. Дефолтные значения для локального Docker Compose
+        this.url = resolveConfig(
+                System.getProperty("db.url"),
+                System.getenv("DB_URL"),
+                props.getProperty("db.url"),
+                "jdbc:postgresql://localhost:5432/postgres"
+        );
+
+        this.user = resolveConfig(
+                System.getProperty("db.user"),
+                System.getenv("DB_USER"),
+                props.getProperty("db.user"),
+                "postgres"
+        );
+
+        this.password = resolveConfig(
+                System.getProperty("db.password"),
+                System.getenv("DB_PASSWORD"),
+                props.getProperty("db.password"),
+                "password"
+        );
+    }
+
+    private static String resolveConfig(String sysProp, String envVar, String propVal, String defaultValue) {
+        if (sysProp != null && !sysProp.isBlank()) return sysProp.trim();
+        if (envVar != null && !envVar.isBlank()) return envVar.trim();
+        if (propVal != null && !propVal.isBlank()) return propVal.trim();
+        return defaultValue;
     }
 
     public Connection connect() throws SQLException {

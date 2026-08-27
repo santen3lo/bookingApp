@@ -1,0 +1,11 @@
+# Настройки подключения к PostgreSQL
+#
+# Если запущен локальный контейнер Docker Compose (docker compose up -d):
+db.url=jdbc:postgresql://localhost:5432/postgres
+db.user=postgres
+db.password=password
+
+# Если используется локально установленный PostgreSQL без Docker:
+# db.url=jdbc:postgresql://localhost:5432/postgres
+# db.user=postgres
+# db.password=1111

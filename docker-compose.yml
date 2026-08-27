@@ -1,0 +1,21 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: lab_postgres
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: postgres
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+    volumes:
+      # Постоянное хранилище данных PostgreSQL
+      - postgres_data:/var/lib/postgresql/data
+      # Автоматическое применение схемы при первой инициализации контейнера
+      - ./src/main/resources/shema.sql:/docker-entrypoint-initdb.d/01-shema.sql:ro
+      # Автоматическая загрузка начальных тестовых данных
+      - ./src/main/resources/seed_data.sql:/docker-entrypoint-initdb.d/02-seed.sql:ro
+
+volumes:
+  postgres_data:

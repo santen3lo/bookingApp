@@ -28,3 +28,11 @@ bin/
 
 ### Mac OS ###
 .DS_Store
+
+### Gradle ###
+.gradle/
+build/
+
+### Local database & secrets ###
+src/main/resources/db.properties
+.env

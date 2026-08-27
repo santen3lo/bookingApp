@@ -35,13 +35,3 @@ CREATE TABLE IF NOT EXISTS checkouts (
     ownerUsername VARCHAR(128) NOT NULL,
     created_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
-
-SELECT constraint_name
-FROM information_schema.table_constraints
-WHERE table_name = 'instruments' AND constraint_type = 'UNIQUE';
-
-SELECT MAX(id) FROM instruments;
-
--- Какой следующий id выдаст счётчик?
-SELECT last_value FROM instruments_id_seq;
-SELECT setval('instruments_id_seq', (SELECT MAX(id) FROM instruments));
