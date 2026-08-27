@@ -1,22 +1,27 @@
 package services;
-import command.*;
-import javafx.scene.control.Alert;
 
-import java.nio.file.InvalidPathException;
-import java.nio.file.Path;
+import command.*;
+import storage.JdbcStorage;
+
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Scanner;
 
 public class CommandManager {
-    Scanner sc;
-    String[] args;
-    Map<String, Command> commandsMap = new HashMap<>();
-    public  CommandManager(Scanner scanner, String[] args){
-        BookingManager bookingManager = new BookingManager();
-        CheckoutManager checkoutManager = new CheckoutManager();
-        InstrumentManager instrumentManager = new InstrumentManager();
-        UserManager userManager = new UserManager();
+    private final Scanner sc;
+    private final String[] args;
+    private final Map<String, Command> commandsMap = new HashMap<>();
+
+    public CommandManager(Scanner scanner, String[] args) {
+        this.sc = scanner;
+        this.args = args;
+
+        JdbcStorage jdbc = new JdbcStorage();
+        UserManager userManager = new UserManager(jdbc);
+        BookingManager bookingManager = new BookingManager(jdbc);
+        CheckoutManager checkoutManager = new CheckoutManager(jdbc);
+        InstrumentManager instrumentManager = new InstrumentManager(jdbc);
+
         try {
             userManager.loadUsers();
             bookingManager.loadFromDb();
@@ -24,12 +29,9 @@ public class CommandManager {
             instrumentManager.loadFromDb();
             System.out.println("Данные успешно загружены из хранилищ.");
         } catch (Exception e) {
-            System.err.println("Не удалось загрузить");
+            System.err.println("Не удалось загрузить данные из БД: " + e.getMessage());
         }
 
-        this.args = args;
-
-        sc = scanner;
         commandsMap.put("help", new HelpCommand());
         commandsMap.put("book_create", new BookCreateCommand(bookingManager, sc));
         commandsMap.put("book_list", new BookLlistCommand(bookingManager));
@@ -47,22 +49,27 @@ public class CommandManager {
     }
 
     public void manage() {
-        boolean stop = true;
-        while (stop) {
-            String[] in = sc.nextLine().split(" ");
-            String command = in[0];
+        System.out.println("Консольный интерфейс запущен. Введите 'help' для списка команд.");
+        boolean running = true;
+        while (running && sc.hasNextLine()) {
+            String line = sc.nextLine().trim();
+            if (line.isEmpty()) {
+                continue;
+            }
 
-            if (commandsMap.get(command) instanceof ExitCommand) {
-                commandsMap.get(command).execute(in);
-                stop = false;
-            } else if (commandsMap.containsKey(command)) {
-                commandsMap.get(command).execute(in);
+            String[] in = line.split("\\s+");
+            String commandName = in[0].toLowerCase();
+
+            Command command = commandsMap.get(commandName);
+            if (command instanceof ExitCommand) {
+                command.execute(in);
+                running = false;
+            } else if (command != null) {
+                command.execute(in);
                 System.out.println("------------------");
             } else {
-                System.out.println("Неизвестная команда " + command +"\n");
+                System.out.println("Неизвестная команда: '" + commandName + "'. Введите 'help' для списка команд.\n");
             }
         }
-
     }
-
 }

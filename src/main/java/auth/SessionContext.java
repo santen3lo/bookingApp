@@ -1,6 +1,7 @@
 package auth;
 
 import domain.User;
+import exceptions.SecurityException;
 
 public final class SessionContext {
     private static User currentUser;

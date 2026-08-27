@@ -1,37 +1,37 @@
 package services;
 
 import auth.SessionContext;
-import domain.Booking;
-import domain.Instrument;
+import domain.Checkout;
 import enums.ReturnCondition;
-import exceptions.NotOpenException;
+import exceptions.NotFoundException;
 import exceptions.SecurityException;
-import exceptions.StartAfterEndException;
 import exceptions.UnderOneException;
 import storage.DbErrorHandler;
 import storage.JdbcStorage;
-import validators.FlagValidator;
-import validators.IdValidator;
-import domain.Checkout;
 import utils.IdGen;
-import validators.NameValidator;
-import validators.TimeValidator;
+import validators.IdValidator;
 
 import java.sql.SQLException;
-import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Scanner;
+import java.util.stream.Collectors;
 
 public class CheckoutManager {
-    private final ArrayList<Checkout> checkouts = new ArrayList<>();
+    private final List<Checkout> checkouts = new ArrayList<>();
     private final IdGen id = new IdGen();
-    private final JdbcStorage jdbc = new JdbcStorage();
+    private final JdbcStorage jdbc;
 
+    public CheckoutManager() {
+        this(new JdbcStorage());
+    }
 
-    public ArrayList<Checkout> getCheckouts(){
-        return checkouts;
+    public CheckoutManager(JdbcStorage jdbc) {
+        this.jdbc = jdbc;
+    }
+
+    public List<Checkout> getCheckouts() {
+        return new ArrayList<>(checkouts);
     }
 
     public void loadFromDb() {
@@ -40,163 +40,35 @@ public class CheckoutManager {
             checkouts.addAll(jdbc.loadAllCheckouts());
             System.out.println("Загружено чекаутов из БД: " + checkouts.size());
         } catch (SQLException e) {
-            System.err.println("Ошибка загрузки броней: " + e.getMessage());
-        }
-    }
-    //==============================================================================================
-    public void checkoutReturn(String[] com, Scanner sc) {
-        try {
-            if (!SessionContext.isAuthenticated()) {
-                throw new SecurityException("Для создания брони необходимо войти в систему (login)");
-            }
-            long checkId = Integer.parseInt(com[1]);
-            IdValidator.checkId((checkId));
-            System.out.print("Состояние (OK | DAMAGED): ");
-            ReturnCondition ret = ReturnCondition.valueOf(sc.nextLine());
-            for (Checkout checkout : checkouts) {
-                if (checkId == checkout.getId()){
-                    if (SessionContext.getCurrentUserId() == checkout.getUserId()){
-                        checkout.setReturnCondition(ret);
-                        checkout.setReturnedAt(Instant.now());
-                        System.out.println(ret + " returned");
-                        break;
-                    } else {
-                        System.err.println("У вас нет прав, чтобы вернуть этот инструмент");
-                    }
-                }
-            }
-        } catch (ArrayIndexOutOfBoundsException e) {
-            System.err.println("Вы не ввели id чекаута");
-        } catch (UnderOneException | StartAfterEndException | SecurityException e) {
-            System.err.println(e.getMessage());
-        } catch (NumberFormatException exception) {
-            System.err.println("Вы ввели недействительный instrument id");
-        } catch (IllegalArgumentException e) {
-            System.err.println("Вы ввели неверное состояние");
+            System.err.println("Ошибка загрузки чекаутов: " + DbErrorHandler.translate(e));
         }
     }
 
-    //==============================================================================================
-    public void checkoutList(String[] com) {
-        try {
-            String flag = com[1];
-            FlagValidator.checkOpenFlag(flag);
-            System.out.println("ID  Instrument Id   User    TakenAt");
-            for (Checkout checkout: checkouts){
-                if (checkout.getReturnedAt() == null || checkout.getReturnedAt().isAfter(Instant.now())){
-                    System.out.println(checkout.getId() + "   " + checkout.getInstrumentId()
-                            + "              " + checkout.getUserId() + "        " + TimeValidator.parseBack(checkout.getTakenAt()));
-                }
-            }
-        } catch (ArrayIndexOutOfBoundsException e) {
-            System.err.println("Вы не ввели id чекаута");
-        } catch (NotOpenException e) {
-            System.err.println(e.getMessage());
-        } catch (Exception e) {
-            System.err.println("Произошла ошибка");
-        }
-    }//==============================================================================================
-    public void checkoutShow(String[] com) {
-        try {
-            long checkoutId = Integer.parseInt(com[1]);
-            IdValidator.checkId(checkoutId);
-
-            for (Checkout checkout : checkouts) {
-                if (checkout.getId() == checkoutId) {
-                    System.out.println("#" + checkoutId);
-                    System.out.println("instrument_id:" + checkout.getInstrumentId());
-                    System.out.println("user:" + checkout.getUserId());
-                    System.out.println("takenAt:" + TimeValidator.parseBack(checkout.getTakenAt()));
-                    System.out.println("returnedAt:" + TimeValidator.parseBack(checkout.getReturnedAt()));
-                }
-            }
-        } catch (ArrayIndexOutOfBoundsException e) {
-            System.err.println("Вы не ввели id чекаута");
-        } catch (UnderOneException e){
-            System.err.println(e.getMessage());
-        } catch (NumberFormatException e){
-            System.err.println("Вы ввели недействительный instrument id");
-        }
-    }
-    //==============================================================================================
-    public void checkoutTake(String[] com) {
-        try {
-            if (!SessionContext.isAuthenticated()) {
-                throw new SecurityException("Для создания брони необходимо войти в систему (login)");
-            }
-            long instrId;
-            instrId = Integer.parseInt(com[1]);
-            IdValidator.checkId(instrId);
-            for (Checkout checkout : checkouts) {
-                if (instrId == checkout.getInstrumentId()) {
-                    checkout.setReturnCondition(ReturnCondition.OK);
-                    System.out.println("Кто берет:" + checkout.getOwnerUsername());
-                    if (!checkout.getComment().isEmpty()){
-                        System.out.println(checkout.getComment());
-                    }
-                    System.out.println(checkout.getReturnCondition());
-                }
-            }
-        } catch (ArrayIndexOutOfBoundsException e) {
-            System.err.println("Вы не ввели id чекаута");
-        } catch (NumberFormatException ex){
-            System.err.println("Вы ввели недействительный instrument id");
-        } catch (UnderOneException | SecurityException e){
-            System.err.println(e.getMessage());
-        }
+    public Checkout getCheckoutById(long checkoutId) throws UnderOneException {
+        IdValidator.checkId(checkoutId);
+        return checkouts.stream()
+                .filter(c -> c.getId() == checkoutId)
+                .findFirst()
+                .orElseThrow(() -> new NotFoundException("Выдача с ID " + checkoutId + " не найдена"));
     }
 
+    public List<Checkout> getOpenCheckouts() {
+        return checkouts.stream()
+                .filter(c -> c.getReturnedAt() == null)
+                .collect(Collectors.toList());
+    }
 
-
-
-
-
-//==============================================================================================
-//    public void checkoutTake(long instrId,  String com) throws NumberFormatException, UnderOneException {
-//        IdValidator.checkId(instrId);
-//        checkouts.add(new Checkout(id.createId(), instrId, SessionContext.getCurrentUserId(), com,
-//                Instant.now(), null, ReturnCondition.OK, "system", Instant.now()));
-//    }
-//
-//    //==============================================================================================
-//    public void returnCheckout(long checkId, ReturnCondition r)
-//            throws UnderOneException, IllegalArgumentException, StartAfterEndException{
-//        IdValidator.checkId((checkId));
-//        for (Checkout checkout : checkouts) {
-//            if (checkId == checkout.getId()){
-//                checkout.setReturnCondition(r);
-//                checkout.setReturnedAt(Instant.now());
-//                break;
-//            }
-//        }
-//    }
-//==============================================================================================
-public void replaceAll(List<Checkout> newCheckouts) {
-    checkouts.clear();
-    checkouts.addAll(newCheckouts);
-    id.setId(newCheckouts.stream()
-            .mapToLong(Checkout::getId)
-            .max()
-            .orElse(0L) + 1);
-}
-    //==============================================================================================
-    //==============================================================================================
-    //==============================================================================================
-
-    public void checkoutTake(long instrumentId, String comment)
-            throws UnderOneException, RuntimeException {
+    public Checkout takeCheckout(long instrumentId, String comment) throws UnderOneException {
         if (!SessionContext.isAuthenticated()) {
             throw new SecurityException("Для оформления выдачи необходимо войти в систему");
         }
         IdValidator.checkId(instrumentId);
 
-
         boolean alreadyOut = checkouts.stream()
                 .anyMatch(c -> c.getInstrumentId() == instrumentId && c.getReturnedAt() == null);
         if (alreadyOut) {
-            throw new IllegalStateException("Прибор уже выдан и не возвращён");
+            throw new IllegalStateException("Прибор уже выдан и ещё не возвращён");
         }
-
 
         Checkout newC = new Checkout(
                 0, instrumentId, SessionContext.getCurrentUserId(),
@@ -210,43 +82,57 @@ public void replaceAll(List<Checkout> newCheckouts) {
             long generatedId = jdbc.insertCheckout(newC);
             newC.setId(generatedId);
             checkouts.add(newC);
-            System.out.println("Успешно выдано");
+            return newC;
         } catch (SQLException e) {
             throw dbError(e);
         }
     }
 
-    public void returnCheckout(long checkId, ReturnCondition r)
-            throws UnderOneException, RuntimeException{
+    public Checkout returnCheckout(long checkoutId, ReturnCondition condition) throws UnderOneException {
         if (!SessionContext.isAuthenticated()) {
-            throw new SecurityException("Для оформления выдачи необходимо войти в систему");
+            throw new SecurityException("Для возврата прибора необходимо войти в систему");
         }
-        IdValidator.checkId((checkId));
-        for (Checkout checkout : checkouts) {
-            if (checkId == checkout.getId()){
-                if (SessionContext.getCurrentUserId() != checkout.getUserId()){
-                    throw new RuntimeException("Нельзя вернуть не свой чекаут");
-                }
-                Instant oldReturn = checkout.getReturnedAt();
-                ReturnCondition oldCond = checkout.getReturnCondition();
-
-                checkout.setReturnedAt(Instant.now());
-                checkout.setReturnCondition(r);
-
-                try {
-                    jdbc.updateCheckout(checkout);
-                } catch (SQLException e) {
-                    checkout.setReturnedAt(oldReturn);
-                    checkout.setReturnCondition(oldCond);
-                    throw dbError(e);
-                }
-                break;
-            }
+        IdValidator.checkId(checkoutId);
+        if (condition == null) {
+            throw new IllegalArgumentException("Состояние возврата (OK или DAMAGED) обязательно");
         }
+
+        Checkout checkout = getCheckoutById(checkoutId);
+
+        if (checkout.getReturnedAt() != null) {
+            throw new IllegalStateException("Этот чекаут уже закрыт (прибор уже возвращён ранее)");
+        }
+
+        if (SessionContext.getCurrentUserId() != checkout.getUserId()) {
+            throw new SecurityException("Вы не можете вернуть чужую выдачу");
+        }
+
+        Instant oldReturn = checkout.getReturnedAt();
+        ReturnCondition oldCond = checkout.getReturnCondition();
+
+        checkout.setReturnedAt(Instant.now());
+        checkout.setReturnCondition(condition);
+
+        try {
+            jdbc.updateCheckout(checkout);
+            return checkout;
+        } catch (SQLException e) {
+            checkout.setReturnedAt(oldReturn);
+            checkout.setReturnCondition(oldCond);
+            throw dbError(e);
+        }
+    }
+
+    public void replaceAll(List<Checkout> newCheckouts) {
+        checkouts.clear();
+        checkouts.addAll(newCheckouts);
+        id.setId(newCheckouts.stream()
+                .mapToLong(Checkout::getId)
+                .max()
+                .orElse(0L) + 1);
     }
 
     private RuntimeException dbError(SQLException e) {
         return new RuntimeException(DbErrorHandler.translate(e), e);
     }
-
 }

@@ -1,77 +1,65 @@
 package command;
 
-import domain.Booking;
-import domain.Checkout;
 import domain.Instrument;
 import enums.InstrumentType;
 import exceptions.PastTimeException;
 import exceptions.StartAfterEndException;
+import parsers.CliInputParser;
 import services.BookingManager;
 import services.CheckoutManager;
 import services.InstrumentManager;
-import validators.TimeValidator;
 
 import java.time.Instant;
+import java.util.List;
 
-public class InstAvailableCommand implements Command{
+public class InstAvailableCommand implements Command {
+    private final BookingManager bookingManager;
+    private final InstrumentManager instrumentManager;
+    private final CheckoutManager checkoutManager;
 
-    BookingManager bookingManager;
-    InstrumentManager instrumentManager;
-    CheckoutManager checkoutManager;
-
-    public InstAvailableCommand(BookingManager bm, CheckoutManager cm, InstrumentManager im){
+    public InstAvailableCommand(BookingManager bm, CheckoutManager cm, InstrumentManager im) {
         this.bookingManager = bm;
         this.checkoutManager = cm;
         this.instrumentManager = im;
     }
 
     @Override
-    public void execute (String[] com) {
-        //Enums.InstrumentType type, Instant start, Instant end
+    public void execute(String[] args) {
         try {
-            InstrumentType type = InstrumentType.valueOf(com[1]);
-            Instant start = Instant.parse(TimeValidator.timeFormat(com[2] +" "+ com[3]));
-            Instant end = Instant.parse(TimeValidator.timeFormat(com[4] + " "+com[5]));
-            TimeValidator.StartEndCheck(start, end);
+            if (args.length < 6) {
+                System.err.println("Использование: inst_available <TYPE> <YYYY-MM-DD> <HH:MM> <YYYY-MM-DD> <HH:MM>");
+                return;
+            }
 
-            System.out.print("Available instruments: ");
-            for (Instrument instrument : instrumentManager.getInstruments()) {
-                if (instrument.getType() == type) {
-                    boolean flag = true;
-                    for (Booking book : bookingManager.getBooks()) {
-                        if (book.getInstrumentId() == instrument.getId()) {
-                            if (!(book.getStartAt().isAfter(end) || book.getEndAt().isBefore(start))) {
-                                flag = false;
-                                break;
-                            }
-                        }
-                    }
-                    for (Checkout check : checkoutManager.getCheckouts()) {
-                        if (check.getInstrumentId() == instrument.getId()) {
-                            if (!(check.getTakenAt().isAfter(end) || check.getReturnedAt().isBefore(start))) {
-                                flag = false;
-                                break;
-                            }
-                        }
-                    }
-                    if (flag){
-                        System.out.print(instrument.getId() + ", ");
+            InstrumentType type = CliInputParser.parseInstrumentType(args[1]);
+            Instant start = CliInputParser.parseFutureDateTime(args[2] + " " + args[3]);
+            Instant end = CliInputParser.parseFutureDateTime(args[4] + " " + args[5]);
+            CliInputParser.validateStartEnd(start, end);
 
+            List<Instrument> available = instrumentManager.instAvailable(checkoutManager, bookingManager, type, start, end);
+
+            if (available.isEmpty()) {
+                System.out.println("Нет доступных приборов типа " + type + " на выбранный интервал.");
+            } else {
+                StringBuilder sb = new StringBuilder("Available instruments: ");
+                for (int i = 0; i < available.size(); i++) {
+                    sb.append(available.get(i).getId());
+                    if (i < available.size() - 1) {
+                        sb.append(", ");
                     }
                 }
+                System.out.println(sb);
             }
-            System.out.println("\b\b");
-        } catch (IllegalArgumentException e) {
-            System.out.println("Такого инструмента не существует");
-        } catch (StartAfterEndException | PastTimeException e) {
-            System.out.println(e.getMessage());
-        } catch (IndexOutOfBoundsException e){
-            System.err.println("Вы ввели неправильное количество аргументов");
+
+        } catch (StartAfterEndException | PastTimeException | IllegalArgumentException e) {
+            System.err.println(e.getMessage());
+        } catch (Exception e) {
+            System.err.println("Ошибка проверки доступности: " + e.getMessage());
         }
     }
 
     @Override
     public String description() {
-        return "";
+        return "Проверить доступность приборов: inst_available <TYPE> <YYYY-MM-DD> <HH:MM> <YYYY-MM-DD> <HH:MM>";
     }
 }

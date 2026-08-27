@@ -17,10 +17,10 @@ public class MainApp extends Application {
     private Stage primaryStage;
 
     private final JdbcStorage jdbcStorage = new JdbcStorage();
-    private final UserManager userMgr = new UserManager();
-    private final BookingManager bookingMgr = new BookingManager();
-    private final CheckoutManager checkoutMgr = new CheckoutManager();
-    private final InstrumentManager instMgr = new InstrumentManager();
+    private final UserManager userMgr = new UserManager(jdbcStorage);
+    private final BookingManager bookingMgr = new BookingManager(jdbcStorage);
+    private final CheckoutManager checkoutMgr = new CheckoutManager(jdbcStorage);
+    private final InstrumentManager instMgr = new InstrumentManager(jdbcStorage);
 
     @Override
     public void start(Stage stage) {

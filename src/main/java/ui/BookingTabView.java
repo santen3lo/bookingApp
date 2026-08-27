@@ -236,23 +236,34 @@ public class BookingTabView extends VBox {
     private void handleCreate() {
         TextInputDialog dlg = new TextInputDialog();
         dlg.setTitle("Новая бронь");
-        dlg.setHeaderText("Формат: instrumentId, start, end");
+        dlg.setHeaderText("Формат: instrumentId, start (YYYY-MM-DD HH:MM), end (YYYY-MM-DD HH:MM)");
+        dlg.setContentText("Данные:");
         dlg.showAndWait().ifPresent(input -> {
             try {
-                String[] p = input.split(",");
-                bookingMgr.createNewBooking(Long.parseLong(p[0].trim()),
-                        Instant.parse(TimeValidator.timeFormat(p[1].trim())), Instant.parse(TimeValidator.timeFormat(p[2].trim())));
-                showAlert(Alert.AlertType.INFORMATION, "Успех", "Бронь добавлена. Нажмите 🔄");
-            } catch (Exception e) { showAlert(Alert.AlertType.ERROR, "Ошибка", e.getMessage()); }
+                parsers.GuiInputParser.BookingCreateParams params = parsers.GuiInputParser.parseBookingCreate(input);
+                bookingMgr.createBooking(params.instrumentId(), params.startAt(), params.endAt());
+                refresh();
+                showAlert(Alert.AlertType.INFORMATION, "Успех", "Бронь успешно добавлена!");
+            } catch (exceptions.NotAvailableException e) {
+                showAlert(Alert.AlertType.ERROR, "Ошибка", "В это время инструмент занят");
+            } catch (Exception e) {
+                showAlert(Alert.AlertType.ERROR, "Ошибка", e.getMessage());
+            }
         });
     }
 
     private void handleCancel() {
-        if (selectedBooking == null) { showAlert(Alert.AlertType.WARNING, "Внимание", "Выберите инструмент кликом"); return; }
+        if (selectedBooking == null) {
+            showAlert(Alert.AlertType.WARNING, "Внимание", "Выберите инструмент кликом");
+            return;
+        }
         try {
-            bookingMgr.bookCancel(selectedBooking.getId());
-            showAlert(Alert.AlertType.INFORMATION, "Успех", "Бронь отменена. Нажмите 🔄");
-        } catch (Exception e) { showAlert(Alert.AlertType.ERROR, "Ошибка", e.getMessage()); }
+            bookingMgr.cancelBooking(selectedBooking.getId());
+            refresh();
+            showAlert(Alert.AlertType.INFORMATION, "Успех", "Бронь отменена.");
+        } catch (Exception e) {
+            showAlert(Alert.AlertType.ERROR, "Ошибка", e.getMessage());
+        }
     }
 
     private void handleReschedule() {
@@ -262,40 +273,38 @@ public class BookingTabView extends VBox {
         }
         TextInputDialog dlg = new TextInputDialog();
         dlg.setTitle("Перенос");
-        dlg.setHeaderText("Новое время: start, end");
+        dlg.setHeaderText("Новое время: start (YYYY-MM-DD HH:MM), end (YYYY-MM-DD HH:MM)");
+        dlg.setContentText("Интервал:");
         dlg.showAndWait().ifPresent(input -> {
             try {
-                String[] p = input.split(",");
-                bookingMgr.bookReschedule(selectedBooking.getId(),
-                        Instant.parse(TimeValidator.timeFormat(p[0].trim())), Instant.parse(TimeValidator.timeFormat(p[1].trim())));
-                showAlert(Alert.AlertType.INFORMATION, "Успех", "Бронь перенесена. Нажмите 🔄");
-            } catch (Exception e) { showAlert(Alert.AlertType.ERROR, "Ошибка", e.getMessage()); }
+                parsers.GuiInputParser.BookingRescheduleParams params = parsers.GuiInputParser.parseBookingReschedule(input);
+                bookingMgr.rescheduleBooking(selectedBooking.getId(), params.startAt(), params.endAt());
+                refresh();
+                showAlert(Alert.AlertType.INFORMATION, "Успех", "Бронь перенесена.");
+            } catch (exceptions.NotAvailableException e) {
+                showAlert(Alert.AlertType.ERROR, "Ошибка", "Нельзя перенести: в это время инструмент занят");
+            } catch (Exception e) {
+                showAlert(Alert.AlertType.ERROR, "Ошибка", e.getMessage());
+            }
         });
     }
 
     private void handleAvailability() {
         TextInputDialog dlg = new TextInputDialog();
         dlg.setTitle("Доступность");
-        dlg.setHeaderText("Формат: TYPE, start, end");
+        dlg.setHeaderText("Формат: TYPE, start (YYYY-MM-DD HH:MM), end (YYYY-MM-DD HH:MM)");
         dlg.setContentText("Данные:");
         dlg.showAndWait().ifPresent(input -> {
             try {
-                String[] p = input.split(",");
-                if (p.length != 3) throw new IllegalArgumentException();
-                InstrumentType type = InstrumentType.valueOf(p[0].trim().toUpperCase());
-                Instant start = Instant.parse(TimeValidator.timeFormat(p[1].trim()));
-                Instant end = Instant.parse(TimeValidator.timeFormat(p[2].trim()));
-                var available = instMgr.instAvailable(checkoutMgr, bookingMgr, type, start, end);
-                StringBuilder av = new StringBuilder();
-                for (Instrument i : available) av.append(i.getId()).append(" ");
-                showAlert(Alert.AlertType.INFORMATION, "Доступные приборы", available.isEmpty() ?
-                        "Нет доступных" : "IDs: " + av.toString().trim());
-            } catch (StartAfterEndException | PastTimeException e) {
-                showAlert(Alert.AlertType.ERROR, "Ошибка", e.getMessage());
-            } catch (DateTimeParseException e) {
-                showAlert(Alert.AlertType.ERROR, "Ошибка", "Вы неправильно ввели дату");
-            } catch (IllegalArgumentException e) {
-                showAlert(Alert.AlertType.ERROR, "Ошибка", "Вы неправильно ввели аргументы");
+                parsers.GuiInputParser.AvailabilityParams params = parsers.GuiInputParser.parseAvailability(input);
+                var available = instMgr.instAvailable(checkoutMgr, bookingMgr, params.type(), params.startAt(), params.endAt());
+                if (available.isEmpty()) {
+                    showAlert(Alert.AlertType.INFORMATION, "Доступные приборы", "Нет доступных приборов типа " + params.type() + " на указанное время.");
+                } else {
+                    StringBuilder av = new StringBuilder();
+                    for (Instrument i : available) av.append(i.getId()).append(" ");
+                    showAlert(Alert.AlertType.INFORMATION, "Доступные приборы", "IDs: " + av.toString().trim());
+                }
             } catch (Exception ex) {
                 showAlert(Alert.AlertType.ERROR, "Ошибка", ex.getMessage());
             }

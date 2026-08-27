@@ -28,6 +28,12 @@ application {
 
 dependencies {
     implementation 'org.postgresql:postgresql:42.7.3'
+    testImplementation 'org.junit.jupiter:junit-jupiter:5.10.2'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+test {
+    useJUnitPlatform()
 }
 
 tasks.withType(JavaCompile) {

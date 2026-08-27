@@ -1,10 +1,9 @@
 package services;
 
 import auth.PasswordHasher;
-import auth.SessionContext;
 import domain.User;
-import storage.JdbcStorage;
 import storage.DbErrorHandler;
+import storage.JdbcStorage;
 
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -12,31 +11,40 @@ import java.util.List;
 import java.util.Optional;
 
 public final class UserManager {
-    private final JdbcStorage jdbc = new JdbcStorage();
-    private final List<User> users = new ArrayList<>(); // Кэш для быстрого поиска в UI
+    private final JdbcStorage jdbc;
+    private final List<User> users = new ArrayList<>(); // Кэш для быстрого поиска
 
-    /** Загружает пользователей из БД в локальный кэш (вызывается 1 раз при старте) */
+    public UserManager() {
+        this(new JdbcStorage());
+    }
+
+    public UserManager(JdbcStorage jdbc) {
+        this.jdbc = jdbc;
+    }
+
+    /** Загружает пользователей из БД в локальный кэш */
     public void loadUsers() {
         try {
             users.clear();
             users.addAll(jdbc.loadAllUsers());
-            System.out.println("✅ Пользователи загружены из БД: " + users.size());
+            System.out.println("Пользователи загружены из БД: " + users.size());
         } catch (SQLException e) {
-            System.err.println("⚠️ Ошибка загрузки пользователей: " + DbErrorHandler.translate(e));
+            System.err.println("Ошибка загрузки пользователей: " + DbErrorHandler.translate(e));
         }
     }
 
-    /** Регистрация: пишет в БД + обновляет кэш */
+    /** Регистрация: запись в БД + добавление в кэш */
     public long register(String login, String password) {
         if (login == null || login.isBlank() || password == null || password.isBlank()) {
             throw new IllegalArgumentException("Логин и пароль не могут быть пустыми");
         }
-        if (users.stream().anyMatch(u -> u.getLogin().equalsIgnoreCase(login.trim()))) {
-            throw new IllegalArgumentException("Логин '" + login + "' уже занят");
+        String cleanLogin = login.trim();
+        if (users.stream().anyMatch(u -> u.getLogin().equalsIgnoreCase(cleanLogin))) {
+            throw new IllegalArgumentException("Логин '" + cleanLogin + "' уже занят");
         }
 
         String hash = PasswordHasher.hash(password);
-        User newUser = new User(0, login.trim(), hash, java.time.Instant.now()); // id=0, БД вернёт настоящий
+        User newUser = new User(0, cleanLogin, hash, java.time.Instant.now());
 
         try {
             long generatedId = jdbc.insertUser(newUser);
@@ -52,13 +60,14 @@ public final class UserManager {
         if (login == null || login.isBlank() || password == null || password.isBlank()) {
             return Optional.empty();
         }
+        String cleanLogin = login.trim();
         return users.stream()
-                .filter(u -> u.getLogin().equalsIgnoreCase(login.trim()))
+                .filter(u -> u.getLogin().equalsIgnoreCase(cleanLogin))
                 .findFirst()
                 .filter(u -> PasswordHasher.verify(password, u.getPassword()));
     }
 
-    /** Получение логина по ID (для колонки Owner в таблицах) */
+    /** Получение логина по ID (для отображения владельца) */
     public String getLoginById(long userId) {
         return users.stream()
                 .filter(u -> u.getId() == userId)
@@ -67,8 +76,7 @@ public final class UserManager {
                 .orElse("user#" + userId);
     }
 
-    /** Полная перезагрузка кэша (вызывается после refreshAction) */
-    public void refresh() { loadUsers(); }
-
-    // UserFileStorage больше НЕ нужен. Можно удалить файл.
+    public void refresh() {
+        loadUsers();
+    }
 }

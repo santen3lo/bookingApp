@@ -213,14 +213,11 @@ public class CheckoutTabView extends VBox {
         dlg.setContentText("Данные:");
         dlg.showAndWait().ifPresent(input -> {
             try {
-                String[] p = input.split(",", 2);
-                if (p.length < 1 || p[0].isBlank()) throw new IllegalArgumentException("Введите instrumentId");
-
-                long instId = Long.parseLong(p[0].trim());
-                String comment = p.length > 1 ? p[1].trim() : "";
-                checkoutMgr.checkoutTake(instId, comment);
-                showAlert(Alert.AlertType.INFORMATION, "Успех", "Выдача оформлена. Нажмите 🔄 Refresh.");
-            } catch (SecurityException e){
+                parsers.GuiInputParser.CheckoutTakeParams params = parsers.GuiInputParser.parseCheckoutTake(input);
+                checkoutMgr.takeCheckout(params.instrumentId(), params.comment());
+                refresh();
+                showAlert(Alert.AlertType.INFORMATION, "Успех", "Выдача успешно оформлена!");
+            } catch (exceptions.SecurityException e) {
                 showAlert(Alert.AlertType.WARNING, "Предупреждение", e.getMessage());
             } catch (Exception ex) {
                 showAlert(Alert.AlertType.ERROR, "Ошибка", ex.getMessage());
@@ -243,14 +240,11 @@ public class CheckoutTabView extends VBox {
         dlg.setContentText("Condition:");
         dlg.showAndWait().ifPresent(input -> {
             try {
-                ReturnCondition cond = ReturnCondition.valueOf(input.trim().toUpperCase());
+                ReturnCondition cond = parsers.GuiInputParser.parseReturnCondition(input);
                 checkoutMgr.returnCheckout(selectedCheckout.getId(), cond);
-                showAlert(Alert.AlertType.INFORMATION, "Успех", "Прибор возвращён. Нажмите 🔄 Refresh.");
-            } catch (UnderOneException e){
-                showAlert(Alert.AlertType.WARNING, "Ошибка", e.getMessage());
-            } catch (IllegalArgumentException e){
-                showAlert(Alert.AlertType.ERROR, "Ошибка", "Вы ввели несуществующий тип");
-            } catch (SecurityException e){
+                refresh();
+                showAlert(Alert.AlertType.INFORMATION, "Успех", "Прибор возвращён.");
+            } catch (exceptions.SecurityException e) {
                 showAlert(Alert.AlertType.WARNING, "Предупреждение", e.getMessage());
             } catch (Exception ex) {
                 showAlert(Alert.AlertType.ERROR, "Ошибка", ex.getMessage());

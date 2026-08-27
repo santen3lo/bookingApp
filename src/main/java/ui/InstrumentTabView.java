@@ -67,11 +67,12 @@ public class InstrumentTabView extends VBox {
         dlg.setContentText("Тип:");
         dlg.showAndWait().ifPresent(input -> {
             try {
-                InstrumentType type = InstrumentType.valueOf(input.trim().toUpperCase());
+                InstrumentType type = parsers.GuiInputParser.parseInstrumentType(input);
                 manager.addInstrument(type);
-                showAlert(Alert.AlertType.INFORMATION, "Успех", "Инструмент добавлен. Нажмите 🔄 Refresh.");
+                refresh();
+                showAlert(Alert.AlertType.INFORMATION, "Успех", "Инструмент успешно добавлен!");
             } catch (IllegalArgumentException ex) {
-                showAlert(Alert.AlertType.ERROR, "Ошибка ввода", "Неверный тип. Проверьте написание enum.");
+                showAlert(Alert.AlertType.ERROR, "Ошибка ввода", ex.getMessage());
             } catch (SecurityException ex) {
                 showAlert(Alert.AlertType.WARNING, "Нет прав", ex.getMessage());
             } catch (Exception ex) {
