@@ -67,13 +67,13 @@ public class MainApp extends Application {
         tabPane.setTabClosingPolicy(TabPane.TabClosingPolicy.UNAVAILABLE);
 
         tabPane.getTabs().addAll(
-                new Tab("Бронирования", new BookingTabView(bookingMgr, checkoutMgr, instMgr,  saveAction, refreshAction, userMgr)),
-                new Tab("Выдачи", new CheckoutTabView(checkoutMgr, saveAction, refreshAction, userMgr)),
+                new Tab("Бронирования", new BookingTabView(bookingMgr, checkoutMgr, instMgr, saveAction, refreshAction, userMgr)),
+                new Tab("Выдачи", new CheckoutTabView(checkoutMgr, instMgr, saveAction, refreshAction, userMgr)),
                 new Tab("Инструменты", new InstrumentTabView(instMgr, refreshAction))
         );
 
         primaryStage.setTitle("Booking & Checkout System | " + SessionContext.getCurrentUser().getLogin());
-        primaryStage.setScene(new Scene(tabPane, 1050, 650));
+        primaryStage.setScene(new Scene(tabPane, 1180, 720));
         primaryStage.show();
     }
 

@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="services.AvailabilityTest" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-08-27T15:21:35.918Z" hostname="MacBook-Pro--Stepan.local" time="0.01">
+<testsuite name="services.AvailabilityTest" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-08-27T15:39:33.013Z" hostname="MacBook-Pro--Stepan.local" time="0.009">
   <properties/>
   <testcase name="testInstAvailableWithoutNPEOnActiveCheckout()" classname="services.AvailabilityTest" time="0.005"/>
-  <testcase name="testInstAvailableWhenFree()" classname="services.AvailabilityTest" time="0.001"/>
-  <testcase name="testSecurityCheckWhenUnauthenticated()" classname="services.AvailabilityTest" time="0.002"/>
+  <testcase name="testInstAvailableWhenFree()" classname="services.AvailabilityTest" time="0.0"/>
+  <testcase name="testSecurityCheckWhenUnauthenticated()" classname="services.AvailabilityTest" time="0.001"/>
   <system-out><![CDATA[Вы вышли из системы
 Вы вышли из системы
 Вы вышли из системы

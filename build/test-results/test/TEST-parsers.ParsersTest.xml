@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="parsers.ParsersTest" tests="5" skipped="0" failures="0" errors="0" timestamp="2026-08-27T15:21:35.889Z" hostname="MacBook-Pro--Stepan.local" time="0.027">
+<testsuite name="parsers.ParsersTest" tests="5" skipped="0" failures="0" errors="0" timestamp="2026-08-27T15:39:32.982Z" hostname="MacBook-Pro--Stepan.local" time="0.029">
   <properties/>
   <testcase name="testCliInputParserValidValues()" classname="parsers.ParsersTest" time="0.014"/>
   <testcase name="testCliInputParserInvalidId()" classname="parsers.ParsersTest" time="0.003"/>
   <testcase name="testGuiInputParserCheckoutTake()" classname="parsers.ParsersTest" time="0.001"/>
-  <testcase name="testGuiInputParserAvailability()" classname="parsers.ParsersTest" time="0.001"/>
-  <testcase name="testGuiInputParserBookingCreate()" classname="parsers.ParsersTest" time="0.0"/>
+  <testcase name="testGuiInputParserAvailability()" classname="parsers.ParsersTest" time="0.002"/>
+  <testcase name="testGuiInputParserBookingCreate()" classname="parsers.ParsersTest" time="0.001"/>
   <system-out><![CDATA[]]></system-out>
   <system-err><![CDATA[]]></system-err>
 </testsuite>
